@@ -1,7 +1,5 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import vertexShader from "./shader/vertexShader.vert";
-import fragmentShader from "./shader/fragmentShader.frag";
 
 const sizes = {
   width: window.innerWidth,
@@ -11,29 +9,6 @@ const sizes = {
 const canvas = document.querySelector(".webgl") as HTMLCanvasElement;
 
 const scene = new THREE.Scene();
-
-// const textureLoader = new THREE.TextureLoader();
-
-const geometry = new THREE.PlaneGeometry(1, 1, 32, 32);
-
-const count = geometry.attributes.position.count;
-
-const aRandom = new Float32Array(count);
-for (let i = 0; i < count; i++) {
-  aRandom[i] = Math.random();
-}
-geometry.setAttribute("aRandom", new THREE.BufferAttribute(aRandom, 1));
-
-const material = new THREE.RawShaderMaterial({
-  vertexShader: vertexShader,
-  fragmentShader: fragmentShader,
-  transparent: true,
-  side: THREE.DoubleSide,
-  uniforms: { uTime: { value: 0.0 } },
-});
-
-const mesh = new THREE.Mesh(geometry, material);
-scene.add(mesh);
 
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -64,12 +39,53 @@ window.addEventListener("resize", () => {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
+/**
+ * Particles
+ */
+const particlesGeometry = new THREE.SphereGeometry(1, 32, 32);
+const particlesMaterial = new THREE.PointsMaterial({
+  size: 0.02,
+  sizeAttenuation: true,
+});
+const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+scene.add(particles);
+
+/**
+ * Galaxy
+ */
+const generateGalaxy = () => {
+  const parameters = {
+    count: 1000,
+    size: 0.02,
+  };
+
+  const geometry = new THREE.BufferGeometry();
+  const positions = new Float32Array(parameters.count * 3);
+
+  for (let i = 0; i < parameters.count; i++) {
+    const i3 = i * 3;
+    positions[i3] = (Math.random() - 0.5) * 3;
+    positions[i3 + 1] = (Math.random() - 0.5) * 3;
+    positions[i3 + 2] = (Math.random() - 0.5) * 3;
+  }
+
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: parameters.size,
+    sizeAttenuation: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const points = new THREE.Points(geometry, material);
+  scene.add(points);
+};
+generateGalaxy();
+
 const clock = new THREE.Clock();
 
 const animate = () => {
   const elapsedTime = clock.getElapsedTime();
-
-  material.uniforms.uTime.value = elapsedTime;
 
   controls.update();
   renderer.render(scene, camera);
